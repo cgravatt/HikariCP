@@ -48,6 +48,7 @@ public class MicrometerMetricsTracker implements IMetricsTracker
    private static final String METRIC_NAME_PENDING_CONNECTIONS = HIKARI_METRIC_NAME_PREFIX + ".connections.pending";
    private static final String METRIC_NAME_MAX_CONNECTIONS = HIKARI_METRIC_NAME_PREFIX + ".connections.max";
    private static final String METRIC_NAME_MIN_CONNECTIONS = HIKARI_METRIC_NAME_PREFIX + ".connections.min";
+   private static final String METRIC_NAME_THREAD_INTERRUPTED = HIKARI_METRIC_NAME_PREFIX + ".connectionadder.thread.interrupted.count";
 
    private final Timer connectionObtainTimer;
    private final Counter connectionTimeoutCounter;
@@ -65,6 +66,8 @@ public class MicrometerMetricsTracker implements IMetricsTracker
    private final Gauge maxConnectionGauge;
    @SuppressWarnings("FieldCanBeLocal")
    private final Gauge minConnectionGauge;
+   @SuppressWarnings("FieldCanBeLocal")
+   private final Counter threadInterruptedCounter;
    @SuppressWarnings("FieldCanBeLocal")
    private final MeterRegistry meterRegistry;
    @SuppressWarnings("FieldCanBeLocal")
@@ -128,6 +131,11 @@ public class MicrometerMetricsTracker implements IMetricsTracker
          .tags(METRIC_CATEGORY, poolName)
          .register(meterRegistry);
 
+      this.threadInterruptedCounter = Counter.builder(METRIC_NAME_THREAD_INTERRUPTED)
+         .description("Count of times the connection adder thread was interrupted")
+         .tags(METRIC_CATEGORY, poolName)
+         .register(meterRegistry);
+
    }
 
    /** {@inheritDoc} */
@@ -157,6 +165,11 @@ public class MicrometerMetricsTracker implements IMetricsTracker
    }
 
    @Override
+   public void recordThreadInterrupted() {
+      threadInterruptedCounter.increment();
+   }
+
+   @Override
    public void close() {
       meterRegistry.remove(connectionObtainTimer);
       meterRegistry.remove(connectionTimeoutCounter);
@@ -168,5 +181,6 @@ public class MicrometerMetricsTracker implements IMetricsTracker
       meterRegistry.remove(pendingConnectionGauge);
       meterRegistry.remove(maxConnectionGauge);
       meterRegistry.remove(minConnectionGauge);
+      meterRegistry.remove(threadInterruptedCounter);
    }
 }

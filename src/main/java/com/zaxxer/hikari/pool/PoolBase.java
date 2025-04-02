@@ -58,7 +58,7 @@ abstract class PoolBase
    protected final String poolName;
 
    volatile String catalog;
-   final AtomicReference<Exception> lastConnectionFailure;
+   final AtomicReference<Throwable> lastConnectionFailure;
 
    long connectionTimeout;
    long validationTimeout;
@@ -183,7 +183,7 @@ abstract class PoolBase
       }
    }
 
-   Exception getLastConnectionFailure()
+   Throwable getLastConnectionFailure()
    {
       return lastConnectionFailure.get();
    }
@@ -366,7 +366,7 @@ abstract class PoolBase
          lastConnectionFailure.set(null);
          return connection;
       }
-      catch (Exception e) {
+      catch (Throwable e) {
          if (connection != null) {
             quietlyCloseConnection(connection, "(Failed to create/setup connection)");
          }
@@ -694,6 +694,8 @@ abstract class PoolBase
 
       default void recordConnectionTimeout() {}
 
+      default void recordThreadInterrupted() {}
+
       @Override
       default void close() {}
    }
@@ -741,6 +743,12 @@ abstract class PoolBase
       @Override
       public void recordConnectionTimeout() {
          tracker.recordConnectionTimeout();
+      }
+
+
+      @Override
+      public void recordThreadInterrupted() {
+         tracker.recordThreadInterrupted();
       }
 
       @Override

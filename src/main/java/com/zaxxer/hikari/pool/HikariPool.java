@@ -484,7 +484,7 @@ public final class HikariPool extends PoolBase implements HikariPoolMXBean, IBag
             lastConnectionFailure.set(e);
          }
       }
-      catch (Exception e) {
+      catch (Throwable e) {
          if (poolState == POOL_NORMAL) { // we check POOL_NORMAL to avoid a flood of messages if shutdown() is running concurrently
             logger.debug("{} - Cannot acquire connection from data source", poolName, e);
          }
@@ -754,6 +754,13 @@ public final class HikariPool extends PoolBase implements HikariPoolMXBean, IBag
        * @return true if we should create a connection, false if the need has disappeared
        */
       private synchronized boolean shouldContinueCreating() {
+
+         if (Thread.interrupted()) {
+            metricsTracker.recordThreadInterrupted();
+            logger.debug("Connection Adder thread interrupted. Clearing interrupted state and exiting shouldContinueCreating");
+            return false;
+         }
+
          return poolState == POOL_NORMAL && getTotalConnections() < config.getMaximumPoolSize() &&
             (getIdleConnections() < config.getMinimumIdle() || connectionBag.getWaitingThreadCount() > getIdleConnections());
       }
